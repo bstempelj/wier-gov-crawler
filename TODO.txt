@@ -6,3 +6,11 @@ Then we need to create a algorithm for cleaning urls to proper form
 
 Init frontier (dictionary in python)
 Add all root urls (.gov.si)
+
+Normalizacija:
+    - Brez portov,
+    - Dodati zadnji /,
+    - Id (#) stran,
+    - Brez index.html,
+    - Lower case,
+    - Encode spaces

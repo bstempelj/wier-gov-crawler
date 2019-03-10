@@ -15,16 +15,19 @@ driver.get("http://fri.uni-lj.si")
 frontier = deque()
 history = dict()
 
-
-for i in range(2):
-    for n in driver.find_elements_by_class_name('news-container-title'):
-        if len(n.text) > 0:
-            m = hashlib.sha1()
-            m.update(n.text.encode('utf-8'))
-            hashText = m.hexdigest()
-            if hashText not in history:
-                history[hashText] = n.text
-                frontier.append(n.text)
+for n in driver.find_elements_by_xpath("//a[@href]"): #driver.find_elements_by_class_name('news-container-title'):
+    link = n.get_attribute("href")
+    if len(link) > 0:
+        if link[-1:] == "/":
+            print(link)
+        else:
+            continue
+        m = hashlib.sha1()
+        m.update(link.encode('utf-8'))
+        hashText = m.hexdigest()
+        if hashText not in history:
+            history[hashText] = link
+            frontier.append(link)
 
 print(history)
 
