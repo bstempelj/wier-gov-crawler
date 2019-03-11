@@ -20,9 +20,8 @@ class Browser(Enum):
     FIREFOX = 1
     CHROME = 2
 
-
 site = "http://fri.uni-lj.si"
-browser = Browser.CHROME
+browser = Browser.FIREFOX
 
 if __name__ == "__main__":
 
