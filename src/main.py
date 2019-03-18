@@ -42,10 +42,6 @@ if __name__ == "__main__":
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
         if len(link) > 0:
-            if link[-1:] == "/":
-                print(link)
-            else:
-                continue
             m = hashlib.sha1()
             m.update(link.encode('utf-8'))
             hashText = m.hexdigest()
@@ -53,6 +49,7 @@ if __name__ == "__main__":
                 history[hashText] = link
                 frontier.append(link)
 
-    print(history)
-
     driver.close()
+
+    for url in history.values():
+        print(url)
