@@ -1,5 +1,10 @@
 import os
 import hashlib
+import requests
+
+from PIL import Image
+from io import BytesIO
+from os.path import splitext, basename
 
 from enum import Enum
 from collections import deque
@@ -20,8 +25,27 @@ class Browser(Enum):
     FIREFOX = 1
     CHROME = 2
 
+max_urls = 1000
 site = "http://fri.uni-lj.si"
+# site = "https://fov.um.si/sl"
+img_folder = "images"
 browser = Browser.FIREFOX
+
+def norm_url(url):
+    q = url.find("?")
+    if q != -1:
+        return url[:q]
+    return url
+
+def save_img(url):
+    url = norm_url(url)
+    filename, ext = splitext(url)
+    if ext in [".png", ".jpg", ".jpeg"]:
+        filename = basename(filename)
+        print("Downloading: %s" % filename)
+        r = requests.get(url)    
+        i = Image.open(BytesIO(r.content))
+        i.save("images/%s%s" % (filename, ext))
 
 if __name__ == "__main__":
 
@@ -37,11 +61,11 @@ if __name__ == "__main__":
     frontier = deque()
     history = dict()
 
-    max_urls = 1000
-
     frontier.append(site)
     while len(frontier) != 0 and max_urls > 0:
         driver.get(frontier.pop())
+
+        # get all urls from a site
         for n in driver.find_elements_by_xpath("//a[@href]"):
             link = n.get_attribute("href")
             if len(link) > 0:
@@ -51,8 +75,13 @@ if __name__ == "__main__":
                 if hashText not in history:
                     history[hashText] = link
                     frontier.append(link)
-                    print(link)
             max_urls -= 1
+
+        # get all images from a site
+        for n in driver.find_elements_by_tag_name("img"):
+            img_url = n.get_attribute("src")
+            save_img(img_url)
+
 
     driver.close()
 
