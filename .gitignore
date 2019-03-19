@@ -1,3 +1,5 @@
 geckodriver.log
 .idea/*
 chromedriver
+src/images/*
+test/images/*
