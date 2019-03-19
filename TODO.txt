@@ -1,4 +1,5 @@
-[] get all links from the FRI page
+[X] get all links from the FRI page
+[] get all images from the FRI page
 [] implement js execution with selenium
 [] read robots.txt before crawling a site
 [] parse all the urls in a sitemap if there is one

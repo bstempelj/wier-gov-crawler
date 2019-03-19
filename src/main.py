@@ -37,17 +37,22 @@ if __name__ == "__main__":
     frontier = deque()
     history = dict()
 
-    driver.get(site)
+    max_urls = 1000
 
-    for n in driver.find_elements_by_xpath("//a[@href]"):
-        link = n.get_attribute("href")
-        if len(link) > 0:
-            m = hashlib.sha1()
-            m.update(link.encode('utf-8'))
-            hashText = m.hexdigest()
-            if hashText not in history:
-                history[hashText] = link
-                frontier.append(link)
+    frontier.append(site)
+    while len(frontier) != 0 and max_urls > 0:
+        driver.get(frontier.pop())
+        for n in driver.find_elements_by_xpath("//a[@href]"):
+            link = n.get_attribute("href")
+            if len(link) > 0:
+                m = hashlib.sha1()
+                m.update(link.encode('utf-8'))
+                hashText = m.hexdigest()
+                if hashText not in history:
+                    history[hashText] = link
+                    frontier.append(link)
+                    print(link)
+            max_urls -= 1
 
     driver.close()
 
