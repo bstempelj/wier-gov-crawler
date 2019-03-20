@@ -19,6 +19,8 @@ def allowed_url(url):
 rp = RobotFileParser()
 rp.set_url(url2)
 rp.read()
+rrate = rp.request_rate("*")
+print(rrate)
 
 # print("FRI: %s" % read_robots_file(url))
 # print("Github: %s" % read_robots_file(url2))
