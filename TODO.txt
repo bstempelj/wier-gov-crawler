@@ -1,9 +1,11 @@
 [X] get all links from the FRI page
 [X] get all images from the FRI page
 [] implement js execution with selenium
-[] read robots.txt before crawling a site
+[X] read robots.txt before crawling a site
+[] support requests/second and delays from robots.txt
 [] parse all the urls in a sitemap if there is one
-[] store info if a site has robots file in robots dictionary
+[X] store info if a site has robots file in robots array
+[] store links in a postgres database
 
 First we need to implement headless browser so some links will work (https://duo.com/decipher/driving-headless-chrome-with-python)
 
