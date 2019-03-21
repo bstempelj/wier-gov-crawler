@@ -2,35 +2,41 @@ import requests
 import xml.etree.ElementTree as ET
 
 
-sitemaps = []
-urls = []
-sites = ["evem.gov.si", "e-uprava.gov.si", "podatki.gov.si", "e-prostor.gov.si"]
+class SitemapParser:
+	def __init__(self):
+		self._sitemaps = []
+		self.urls = []
+
+	def _parse_sitemap(self, sitemap):
+		root = ET.fromstring(sitemap)
+		for url in root:
+			for prop in url:
+				if prop.tag.endswith("loc"):
+					self.urls.append(prop.text)
+
+	def find_sitemaps(self, robots_url):
+		r = requests.get(robots_url)
+		if r.status_code == 200:
+			for line in r.text.splitlines():
+				line = line.strip().split(':', 1)
+				if line[0].lower() == "sitemap":
+					self._sitemaps.append(line[1].strip())
+
+	def parse_sitemaps(self):
+		for sm in self._sitemaps:
+			r = requests.get(sm)
+			if r.status_code == 200:
+				self._parse_sitemap(r.text)
 
 
-def find_sitemaps(robots_url):
-	r = requests.get(robots_url)
-	if r.status_code == 200:
-		for line in r.text.splitlines():
-			line = line.strip().split(':', 1)
-			if line[0].lower() == "sitemap":
-				sitemaps.append(line[1].strip())
+if __name__ == "__main__":
+	sites = ["evem.gov.si", "e-uprava.gov.si", "podatki.gov.si", "e-prostor.gov.si"]
+	
+	sp = SitemapParser()
 
-def parse_sitemap(sitemap):
-	root = ET.fromstring(sitemap)
-	for url in root:
-		for prop in url:
-			if prop.tag.endswith("loc"):
-				urls.append(prop.text)
+	# get sitemaps
+	for s in sites:
+		sp.find_sitemaps("http://" + s + "/robots.txt")
 
-# get sitemaps
-for s in sites:
-	find_sitemaps("http://" + s + "/robots.txt")
-
-# get urls from sitemaps
-for sm in sitemaps:
-	r = requests.get(sm)
-	if r.status_code == 200:
-		parse_sitemap(r.text)
-
-# print found urls
-print(urls)
+	sp.parse_sitemaps()
+	print(sp.urls)
