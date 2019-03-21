@@ -1,20 +1,22 @@
 import os
-import hashlib
 import requests
+
+from sitemap_parser import SitemapParser
+from frontier import Frontier
 
 from PIL import Image
 from io import BytesIO
 from os.path import splitext, basename
 
+from urllib.parse import urlsplit
+from urllib.robotparser import RobotFileParser
+
 from enum import Enum
-from collections import deque
 
 from selenium.webdriver import Firefox
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-
 from selenium.webdriver import Chrome
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as expected
@@ -25,9 +27,12 @@ class Browser(Enum):
     FIREFOX = 1
     CHROME = 2
 
-max_urls = 1000
-site = "http://fri.uni-lj.si"
+
+# site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
+site = "http://www.e-prostor.gov.si"
+
+max_urls = 100
 img_folder = "images"
 browser = Browser.FIREFOX
 
@@ -36,6 +41,22 @@ def norm_url(url):
     if q != -1:
         return url[:q]
     return url
+
+def get_base_url(url):
+    split_url = urlsplit(url)
+    return "://".join([split_url.scheme, split_url.netloc])
+
+def has_robots_file(url):
+    r = requests.get(get_base_url(url) + "/robots.txt")
+    return r.status_code == 200
+
+def get_urls(driver, frontier):
+    global max_urls
+    for n in driver.find_elements_by_xpath("//a[@href]"):
+        link = n.get_attribute("href")
+        if len(link) > 0:
+            frontier.add_url(link)
+        max_urls -= 1
 
 def save_img(url):
     url = norm_url(url)
@@ -46,6 +67,7 @@ def save_img(url):
         r = requests.get(url)    
         i = Image.open(BytesIO(r.content))
         i.save("images/%s%s" % (filename, ext))
+
 
 if __name__ == "__main__":
 
@@ -58,32 +80,55 @@ if __name__ == "__main__":
         options.headless = True
         driver = Chrome(executable_path="chromedriver", options=options)
 
-    frontier = deque()
-    history = dict()
+    frontier = Frontier()
+    robots = []
+    rp = RobotFileParser()
+    sp = SitemapParser()
 
-    frontier.append(site)
-    while len(frontier) != 0 and max_urls > 0:
-        driver.get(frontier.pop())
+    frontier.add_url(site)
+    while frontier.has_urls() and max_urls > 0:
+        # url info
+        url = frontier.get_next()
+        # print(url)
+        base_url = get_base_url(url)
+        robots_url = base_url + "/robots.txt"
 
-        # get all urls from a site
-        for n in driver.find_elements_by_xpath("//a[@href]"):
-            link = n.get_attribute("href")
-            if len(link) > 0:
-                m = hashlib.sha1()
-                m.update(link.encode('utf-8'))
-                hashText = m.hexdigest()
-                if hashText not in history:
-                    history[hashText] = link
-                    frontier.append(link)
-            max_urls -= 1
+        # connect to website
+        driver.get(url)
+
+        # check for robots.txt
+        if base_url not in robots and has_robots_file(url):
+            robots.append(base_url)
+
+        # respect robots.txt
+        if base_url in robots:
+            rp.set_url(robots_url)
+            rp.read()
+
+            # parse sitemap
+            sp.find_sitemaps(robots_url)
+            sp.parse_sitemaps()
+            frontier.add_urls(sp.urls)
+
+            if rp.can_fetch("*", url):
+                get_urls(driver, frontier)
+        else:
+            # no robots.txt => parse everything :)
+            get_urls(driver, frontier)
 
         # get all images from a site
-        for n in driver.find_elements_by_tag_name("img"):
-            img_url = n.get_attribute("src")
-            save_img(img_url)
-
+        # for n in driver.find_elements_by_tag_name("img"):
+        #     img_url = n.get_attribute("src")
+        #     save_img(img_url)
 
     driver.close()
 
-    for url in history.values():
+    # print robots
+    # print(robots)
+
+    # stats
+    print(len(frontier._history.values()))
+
+    # print history
+    for url in frontier._history.values():
         print(url)

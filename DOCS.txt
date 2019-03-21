@@ -6,3 +6,7 @@ Installation instructions:
     echo %PATH%
   5. install python driver for selenium
     pip install selenium
+
+
+- sitemaps can be specified in robots.txt
+- 

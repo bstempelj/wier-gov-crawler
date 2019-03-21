@@ -3,3 +3,4 @@ geckodriver.log
 chromedriver
 src/images/*
 test/images/*
+src/__pycache__/*
