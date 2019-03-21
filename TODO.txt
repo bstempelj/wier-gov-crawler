@@ -1,25 +1,13 @@
 [X] get all links from the FRI page
 [X] get all images from the FRI page
-[ ] implement js execution with selenium
 [X] read robots.txt before crawling a site
-[ ] support requests/second and delays from robots.txt
 [X] store info if a site has robots file in robots array
-[ ] store links in a postgres database
 [X] parse robots.txt for sitemaps
-[ ] parse sitemaps
+[X] parse sitemaps
+[ ] use urllib.parse.urlparse to canonicalize URLs
+[ ] add database
+[ ] support requests/second and delays from robots.txt
 [ ] handle onClick events
-
-First we need to implement headless browser so some links will work (https://duo.com/decipher/driving-headless-chrome-with-python)
-
-Then we need to create a algorithm for cleaning urls to proper form
-
-Init frontier (dictionary in python)
-Add all root urls (.gov.si)
-
-Normalizacija:
-    - Brez portov,
-    - Dodati zadnji /,
-    - Id (#) stran,
-    - Brez index.html,
-    - Lower case,
-    - Encode spaces
+[ ] save sitemap content to db
+[ ] skip links with javascript:void(0) in src
+[ ] store links in a postgres database
