@@ -28,9 +28,12 @@ class Browser(Enum):
     CHROME = 2
 
 
-site = "http://fri.uni-lj.si"
+seed = ["evem.gov.si", "e-uprava.gov.si", "podatki.gov.si", "e-prostor.gov.si"]
+
+# site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
 # site = "http://www.e-prostor.gov.si"
+site = "http://e-uprava.gov.si"
 
 img_folder = "images"
 browser = Browser.FIREFOX
@@ -61,7 +64,7 @@ def save_img(url):
     if ext in [".png", ".jpg", ".jpeg"]:
         filename = basename(filename)
         print("Downloading: %s" % filename)
-        r = requests.get(url)    
+        r = requests.get(url)
         i = Image.open(BytesIO(r.content))
         i.save("images/%s%s" % (filename, ext))
 
@@ -91,7 +94,7 @@ if __name__ == "__main__":
         robots_url = base_url + "/robots.txt"
 
         # connect to website
-        driver.get(url)
+        driver.get(url) # .page_source v bazo
 
         # check for robots.txt
         if base_url not in robots and has_robots_file(url):
@@ -114,18 +117,12 @@ if __name__ == "__main__":
             get_urls(driver, frontier)
 
         # get all images from a site
-        # for n in driver.find_elements_by_tag_name("img"):
+        # for n in driver.find_elements_by_tag_name("//img[@src]"):
         #     img_url = n.get_attribute("src")
         #     save_img(img_url)
 
     driver.close()
 
-    # print robots
-    # print(robots)
-
-    # stats
-    print(len(frontier._history.values()))
-
     # print history
-    # for url in frontier._history.values():
-    #     print(url)
+    for url in frontier._history.values():
+        print(url)
