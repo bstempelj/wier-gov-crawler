@@ -5,14 +5,17 @@ class Frontier:
     def __init__(self):
         self._frontier = deque()
         self._history = {}
+        self._max_urls = 100
 
     def add_url(self, url):
-        m = hashlib.sha1()
-        m.update(url.encode('utf-8'))
-        hash_text = m.hexdigest()
-        if hash_text not in self._history:
-            self._history[hash_text] = url
-            self._frontier.append(url)
+        if not self.max_reached():
+            self._max_urls -= 1
+            m = hashlib.sha1()
+            m.update(url.encode('utf-8'))
+            hash_text = m.hexdigest()
+            if hash_text not in self._history:
+                self._history[hash_text] = url
+                self._frontier.append(url)
 
     def add_urls(self, urls):
         for url in urls:
@@ -23,3 +26,6 @@ class Frontier:
 
     def has_urls(self):
         return len(self._frontier) > 0
+
+    def max_reached(self):
+        return self._max_urls == 0

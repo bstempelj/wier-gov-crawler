@@ -28,11 +28,10 @@ class Browser(Enum):
     CHROME = 2
 
 
-# site = "http://fri.uni-lj.si"
+site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
-site = "http://www.e-prostor.gov.si"
+# site = "http://www.e-prostor.gov.si"
 
-max_urls = 100
 img_folder = "images"
 browser = Browser.FIREFOX
 
@@ -51,12 +50,10 @@ def has_robots_file(url):
     return r.status_code == 200
 
 def get_urls(driver, frontier):
-    global max_urls
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
         if len(link) > 0:
             frontier.add_url(link)
-        max_urls -= 1
 
 def save_img(url):
     url = norm_url(url)
@@ -86,7 +83,7 @@ if __name__ == "__main__":
     sp = SitemapParser()
 
     frontier.add_url(site)
-    while frontier.has_urls() and max_urls > 0:
+    while frontier.has_urls() and not frontier.max_reached():
         # url info
         url = frontier.get_next()
         # print(url)
@@ -130,5 +127,5 @@ if __name__ == "__main__":
     print(len(frontier._history.values()))
 
     # print history
-    for url in frontier._history.values():
-        print(url)
+    # for url in frontier._history.values():
+    #     print(url)
