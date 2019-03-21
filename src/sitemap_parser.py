@@ -20,8 +20,8 @@ class SitemapParser:
 		if r.status_code == 200:
 			for line in r.text.splitlines():
 				line = line.strip().split(':', 1)
+				# skip gzipped sitemaps
 				if line[0].lower() == "sitemap" and not \
-					# skip gzipped sitemaps
 					line[1].strip().endswith(".gz"):
 					self._sitemaps.append(line[1].strip())
 

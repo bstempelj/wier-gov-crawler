@@ -89,6 +89,7 @@ if __name__ == "__main__":
     while frontier.has_urls() and not frontier.max_reached():
         # url info
         url = frontier.get_next()
+        print(url)
         # print(url)
         base_url = get_base_url(url)
         robots_url = base_url + "/robots.txt"
