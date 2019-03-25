@@ -3,6 +3,7 @@ import requests
 
 from sitemap_parser import SitemapParser
 from frontier import Frontier
+from database import connect
 
 from PIL import Image
 from io import BytesIO
@@ -32,11 +33,11 @@ seed = ["evem.gov.si", "e-uprava.gov.si", "podatki.gov.si", "e-prostor.gov.si"]
 
 # site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
-# site = "http://www.e-prostor.gov.si"
-site = "http://e-uprava.gov.si"
+site = "http://www.e-prostor.gov.si"
+#site = "http://e-uprava.gov.si"
 
 img_folder = "images"
-browser = Browser.FIREFOX
+browser = Browser.CHROME
 
 def norm_url(url):
     q = url.find("?")
@@ -84,6 +85,9 @@ if __name__ == "__main__":
     robots = []
     rp = RobotFileParser()
     sp = SitemapParser()
+
+    #connect to database
+    connect()
 
     frontier.add_url(site)
     while frontier.has_urls() and not frontier.max_reached():
