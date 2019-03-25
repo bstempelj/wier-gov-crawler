@@ -1,5 +1,7 @@
 import hashlib
 from collections import deque
+from urllib.parse import urlparse, quote, unquote
+from os.path import splitext, basename, normpath
 
 class Frontier:
     def __init__(self):
@@ -7,7 +9,43 @@ class Frontier:
         self._history = {}
         self._max_urls = 100
 
+    def _norm_url(self, url):
+        url = urlparse(url)
+
+        # lowercase network part
+        url = url._replace(netloc=url.netloc.lower())
+
+        # unquote and quote path
+        url = url._replace(path=unquote(url.path))
+        url = url._replace(path=quote(url.path))
+
+        # normalize path
+        if url.path != "":
+            url = url._replace(path=normpath(url.path).replace("\\", "/"))
+
+        # remove port from url
+        port = url.netloc.find(":")
+        if port != -1:
+            no_port = url.netloc[:port]
+            url = url._replace(netloc=no_port)
+
+        # path/file and file extension
+        path, ext = splitext(url.path)
+
+        # add trailing slash to netloc
+        if path == "":
+            url = url._replace(netloc=url.netloc + "/")
+        # add trailing slash to path
+        elif ext == "" and not path.endswith("/"):
+            url = url._replace(path=url.path + "/")
+        # remove index.html
+        elif ext == ".html" and path.endswith("index"):
+            url = url._replace(path="/")
+
+        return "{}://{}{}".format(url.scheme, url.netloc, url.path)
+
     def add_url(self, url):
+        url = self._norm_url(url)
         if not self.max_reached():
             self._max_urls -= 1
             m = hashlib.sha1()

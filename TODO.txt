@@ -11,3 +11,5 @@
 [ ] save sitemap content to db
 [ ] skip links with javascript:void(0) in src
 [ ] store links in a postgres database
+[ ] respect craw-delay in robots.txt
+[ ] parse other files like .pdf, .doc, .docx, .ppt, and .pptx
