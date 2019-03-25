@@ -62,7 +62,7 @@ def get_urls(driver, frontier):
 def save_img(url):
     url = norm_url(url)
     filename, ext = splitext(url)
-    if ext in [".png", ".jpg", ".jpeg"]:
+    if ext in [".png", ".jpg", ".jpeg", ".gif"]:
         filename = basename(filename)
         print("Downloading: %s" % filename)
         r = requests.get(url)
@@ -93,8 +93,6 @@ if __name__ == "__main__":
     while frontier.has_urls() and not frontier.max_reached():
         # url info
         url = frontier.get_next()
-        print(url)
-        # print(url)
         base_url = get_base_url(url)
         robots_url = base_url + "/robots.txt"
 

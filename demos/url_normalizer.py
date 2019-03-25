@@ -1,4 +1,5 @@
-import re
+from urllib.parse import urlparse, quote, unquote
+from os.path import splitext, basename, normpath
 
 test_cases = [
 	["http://cs.indiana.edu:80/", "http://cs.indiana.edu/"],
@@ -13,45 +14,40 @@ test_cases = [
 	["http://CS.INDIANA.EDU/People", "http://cs.indiana.edu/People/"],
 ]
 
-
 def norm_url(url):
-	# find port
-	try:
-		double_idx = url.index("//")
-		port_idx = url.index(":", double_idx)
+	url = urlparse(url)
 
-		url = url[:port_idx]
-	except:
-		pass
+	# lowercase network part
+	url = url._replace(netloc=url.netloc.lower())
 
-	# remove trailing hash
-	try:
-		hash_idx = url.index("#")
-		url = url[:hash_idx]
-	except:
-		pass
+	# unquote and quote path
+	url = url._replace(path=unquote(url.path))
+	url = url._replace(path=quote(url.path))
 
+	# normalize path
+	if url.path != "":
+		url = url._replace(path=normpath(url.path).replace("\\", "/"))
+
+	# remove port from url
+	port = url.netloc.find(":")
+	if port != -1:
+		no_port = url.netloc[:port]
+		url = url._replace(netloc=no_port)
+
+	# path/file and file extension
+	path, ext = splitext(url.path)
+
+	# add trailing slash to netloc
+	if path == "":
+		url = url._replace(netloc=url.netloc + "/")
+	# add trailing slash to path
+	elif ext == "" and not path.endswith("/"):
+		url = url._replace(path=url.path + "/")
 	# remove index.html
-	try:
-		root_idx = url.index("index.html")
-		url = url[:root_idx]
-	except:
-		pass
+	elif ext == ".html" and path.endswith("index"):
+		url = url._replace(path="/")
 
-	# lowercase untils first slash
-	double_idx = url.find("//")
-	slash_idx = url.find("/", double_idx+2)
-	url = url[:slash_idx].lower() + url[slash_idx:]
-
-	# convert spaces to %20
-	spc_p = re.compile("\\s")
-	url = "%20".join(spc_p.split(url))
-
-	# find extension
-	ext_p = re.compile("\\/[A-Za-z%20]+\\.\\w+$")
-	found_ext = ext_p.search(url)
-
-	return url + ("/" if found_ext is None else "")
+	return "{}://{}{}".format(url.scheme, url.netloc, url.path)
 
 if __name__ == "__main__":
 	total = len(test_cases)
