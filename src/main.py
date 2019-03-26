@@ -33,8 +33,8 @@ seed = ["evem.gov.si", "e-uprava.gov.si", "podatki.gov.si", "e-prostor.gov.si"]
 
 # site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
-site = "http://www.e-prostor.gov.si"
-#site = "http://e-uprava.gov.si"
+# site = "http://www.e-prostor.gov.si"
+site = "http://e-uprava.gov.si"
 
 img_folder = "images"
 browser = Browser.CHROME
@@ -56,7 +56,7 @@ def has_robots_file(url):
 def get_urls(driver, frontier):
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
-        if len(link) > 0:
+        if len(link) > 0 and link != "javascript:void(0)":
             frontier.add_url(link)
 
 def save_img(url):
