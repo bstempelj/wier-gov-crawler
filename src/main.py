@@ -29,15 +29,15 @@ class Browser(Enum):
     CHROME = 2
 
 
-seed = ["evem.gov.si", "e-uprava.gov.si", "podatki.gov.si", "e-prostor.gov.si"]
+seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
 
 # site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
 # site = "http://www.e-prostor.gov.si"
-site = "http://e-uprava.gov.si"
+# site = "http://e-uprava.gov.si"
 
 img_folder = "images"
-browser = Browser.CHROME
+browser = Browser.FIREFOX
 
 def norm_url(url):
     q = url.find("?")
@@ -54,6 +54,9 @@ def has_robots_file(url):
     return r.status_code == 200
 
 def get_urls(driver, frontier):
+    # for n in driver.find_elements_by_xpath("//*[@onclick]"):
+    #     print(n)
+
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
         if len(link) > 0 and link != "javascript:void(0)":
@@ -89,7 +92,7 @@ if __name__ == "__main__":
     #connect to database
     connect()
 
-    frontier.add_url(site)
+    frontier.add_urls(seed)
     while frontier.has_urls() and not frontier.max_reached():
         # url info
         url = frontier.get_next()
