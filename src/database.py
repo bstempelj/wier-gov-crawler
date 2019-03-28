@@ -1,42 +1,61 @@
 import psycopg2
 from dbconfig import config
 
-conn = None
 
+class Database:
+    site_id = -1
 
-def connect():
-    """ Connect to the PostgreSQL database server """
-    global conn
-    try:
-        # read connection parameters
-        params = config('../config/database.ini')
+    def __init__(self):
+        self.conn = None
+        self.connect()
 
-        # connect to the PostgreSQL server
-        print('Connecting to the PostgreSQL database...')
-        conn = psycopg2.connect(**params)
+    def connect(self):
+        """ Connect to the PostgreSQL database server """
+        try:
+            # read connection parameters
+            params = config('../config/database.ini')
 
-        # create a cursor
-        #cur = conn.cursor()
+            # connect to the PostgreSQL server
+            print('Connecting to the PostgreSQL database...')
+            self.conn = psycopg2.connect(**params)
+            print('Connection to DB successful')
 
-        return conn
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+            return self.conn
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
 
+    def add_site(self, site, robot, sitemap):
+        cur = self.conn.cursor()
 
-def write_url():
-    global conn
-    cur = conn.cursor()
+        # Check if site already exists
+        cur.execute("SELECT id FROM crawldb.site WHERE domain = '" + site + "'")
+        row = cur.fetchone()
 
+        # Insert site if not yet inserted
+        if row is None:
+            cur.execute("INSERT INTO crawldb.site(domain, robots_content, sitemap_content) "
+                        "VALUES (%s, %s, %s) RETURNING id", (site, robot, sitemap, ))
+            self.site_id = cur.fetchone()[0]
+            self.conn.commit()
 
+        """
+        cur.execute("INSERT INTO crawldb.site(domain, robots_content, sitemap_content) "
+                    "SELECT '" + site + "' as domain, '" + robot + "' as robots_content, '" + sitemap + "' as sitemap_content "
+                    "FROM crawldb.site "
+                    "WHERE domain != '" + site + "' RETURNING id")
+        """
 
+    def add_page(self, url, html_content, http_code, accessed_time):
+        cur = self.conn.cursor()
 
-def get_connection():
-    return conn
+        cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) "
+                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                    (self.site_id, 'HTML', url, html_content, http_code, accessed_time))
 
+        self.conn.commit()
 
-def close_connection():
-    conn.cursor().close()
+    def get_connection(self):
+        return self.conn
 
-
-if __name__ == '__main__':
-    connect()
+    def close_connection(self):
+        self.conn.cursor().close()

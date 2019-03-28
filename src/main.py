@@ -1,9 +1,9 @@
 import os
 import requests
+from database import Database
 
 from sitemap_parser import SitemapParser
 from frontier import Frontier
-from database import connect
 
 from PIL import Image
 from io import BytesIO
@@ -33,11 +33,11 @@ seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si",
 
 # site = "http://fri.uni-lj.si"
 # site = "https://fov.um.si/sl"
-# site = "http://www.e-prostor.gov.si"
-# site = "http://e-uprava.gov.si"
+
 
 img_folder = "images"
 browser = Browser.FIREFOX
+
 
 def norm_url(url):
     q = url.find("?")
@@ -45,13 +45,16 @@ def norm_url(url):
         return url[:q]
     return url
 
+
 def get_base_url(url):
     split_url = urlsplit(url)
     return "://".join([split_url.scheme, split_url.netloc])
 
+
 def has_robots_file(url):
     r = requests.get(get_base_url(url) + "/robots.txt")
-    return r.status_code == 200
+    return r.status_code == 200, r.text
+
 
 def get_urls(driver, frontier):
     # for n in driver.find_elements_by_xpath("//*[@onclick]"):
@@ -61,6 +64,7 @@ def get_urls(driver, frontier):
         link = n.get_attribute("href")
         if len(link) > 0 and link != "javascript:void(0)":
             frontier.add_url(link)
+
 
 def save_img(url):
     url = norm_url(url)
@@ -88,9 +92,8 @@ if __name__ == "__main__":
     robots = []
     rp = RobotFileParser()
     sp = SitemapParser()
-
-    #connect to database
-    connect()
+    db = Database()
+    site_id = -1
 
     frontier.add_urls(seed)
     while frontier.has_urls() and not frontier.max_reached():
@@ -100,10 +103,11 @@ if __name__ == "__main__":
         robots_url = base_url + "/robots.txt"
 
         # connect to website
-        driver.get(url) # .page_source v bazo
+        html_data = requests.get(url)  # .page_source v bazo
 
         # check for robots.txt
-        if base_url not in robots and has_robots_file(url):
+        robot_file = has_robots_file(url)
+        if base_url not in robots and robot_file[0]:
             robots.append(base_url)
 
         # respect robots.txt
@@ -114,18 +118,24 @@ if __name__ == "__main__":
             # parse sitemap
             sp.find_sitemaps(robots_url)
             sp.parse_sitemaps()
+
+            # Write site to database
+            db.add_site(base_url, robot_file[1], sp.get_sitemaps())
             frontier.add_urls(sp.urls)
 
             if rp.can_fetch("*", url):
                 get_urls(driver, frontier)
         else:
             # no robots.txt => parse everything :)
+            db.add_site(base_url, None, None)
             get_urls(driver, frontier)
 
+        db.add_page(html_data.url, html_data.text, html_data.status_code, html_data.headers['date'])
+
         # get all images from a site
-        # for n in driver.find_elements_by_tag_name("//img[@src]"):
-        #     img_url = n.get_attribute("src")
-        #     save_img(img_url)
+        for n in driver.find_elements_by_tag_name("//img[@src]"):
+            img_url = n.get_attribute("src")
+            save_img(img_url)
 
     driver.close()
 

@@ -15,7 +15,7 @@ class SitemapParser:
 					self.urls.append(prop.text)
 
 	def find_sitemaps(self, robots_url):
-		self._sitemaps[:] = []	# clear previous entries
+		self._sitemaps[:] = [] # clear previous entries
 		r = requests.get(robots_url)
 		if r.status_code == 200:
 			for line in r.text.splitlines():
@@ -30,3 +30,6 @@ class SitemapParser:
 			r = requests.get(sm)
 			if r.status_code == 200:
 				self._parse_sitemap(r.text)
+
+	def get_sitemaps(self):
+		return ' '.join(self.urls)
