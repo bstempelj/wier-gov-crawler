@@ -7,7 +7,7 @@ class Frontier:
     def __init__(self):
         self._frontier = deque()
         self._history = {}
-        self._max_urls = 100
+        self._max_urls = -1
 
     def _norm_url(self, url):
         url = urlparse(url)
@@ -46,7 +46,7 @@ class Frontier:
 
     def add_url(self, url):
         url = self._norm_url(url)
-        if not self.max_reached():
+        if not self.max_reached() or self._max_urls == -1:
             self._max_urls -= 1
             m = hashlib.sha1()
             m.update(url.encode('utf-8'))
