@@ -1,15 +1,20 @@
+TODO:
+[ ] add database
+[ ] support requests/second and delays from robots.txt
+[ ] save sitemap content to db
+[ ] store links in a postgres database
+
+DOING:
+[X] skip links with javascript:void(0) in src
+[ ] handle onClick events
+[ ] parse other files like .pdf, .doc, .docx, .ppt, and .pptx
+[ ] respect craw-delay in robots.txt
+
+DONE:
 [X] get all links from the FRI page
 [X] get all images from the FRI page
 [X] read robots.txt before crawling a site
 [X] store info if a site has robots file in robots array
 [X] parse robots.txt for sitemaps
 [X] parse sitemaps
-[ ] use urllib.parse.urlparse to canonicalize URLs
-[ ] add database
-[ ] support requests/second and delays from robots.txt
-[ ] handle onClick events
-[ ] save sitemap content to db
-[ ] skip links with javascript:void(0) in src
-[ ] store links in a postgres database
-[ ] respect craw-delay in robots.txt
-[ ] parse other files like .pdf, .doc, .docx, .ppt, and .pptx
+[X] use urllib.parse.urlparse to canonicalize URLs
