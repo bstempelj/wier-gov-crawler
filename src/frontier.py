@@ -48,9 +48,7 @@ class Frontier:
         url = self._norm_url(url)
         if not self.max_reached() or self._max_urls == -1:
             self._max_urls -= 1
-            m = hashlib.sha1()
-            m.update(url.encode('utf-8'))
-            hash_text = m.hexdigest()
+            hash_text = self._get_url_hash(url)
             if hash_text not in self._history:
                 self._history[hash_text] = url
                 self._frontier.append(url)
@@ -67,3 +65,8 @@ class Frontier:
 
     def max_reached(self):
         return self._max_urls == 0
+
+    def _get_url_hash(self, url):
+        m = hashlib.sha1()
+        m.update(url.encode('utf-8'))
+        return m.hexdigest()

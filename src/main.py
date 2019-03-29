@@ -23,6 +23,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as expected
 from selenium.webdriver.support.wait import WebDriverWait
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 class Browser(Enum):
     FIREFOX = 1
@@ -31,12 +34,13 @@ class Browser(Enum):
 
 seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
 
-# site = "http://fri.uni-lj.si"
+
+# site = "https://podatki.gov.si"
 # site = "https://fov.um.si/sl"
 
 
 img_folder = "images"
-browser = Browser.FIREFOX
+browser = Browser.CHROME
 
 
 def norm_url(url):
@@ -76,6 +80,13 @@ def save_img(url):
         i = Image.open(BytesIO(r.content))
         i.save("images/%s%s" % (filename, ext))
 
+def check_if_doc(url):
+    url = norm_url(url)
+    url, ext = splitext(url)
+    if ext in [".doc", ".docx", ".pdf", ".xlsx", ".xls", ".PPT"]:
+
+
+
 
 if __name__ == "__main__":
 
@@ -97,13 +108,19 @@ if __name__ == "__main__":
 
     frontier.add_urls(seed)
     while frontier.has_urls() and not frontier.max_reached():
-        # url info
-        url = frontier.get_next()
+        # url info -
+        url = frontier.get_next().replace("www.", "")
         base_url = get_base_url(url)
         robots_url = base_url + "/robots.txt"
 
+        # Check that we are still on track
+        if base_url not in seed:
+            continue
+
         # connect to website
-        html_data = requests.get(url)  # .page_source v bazo
+        print(url)
+        http_head = requests.head(url)  # .page_source v bazo
+        driver.get(url)
 
         # check for robots.txt
         robot_file = has_robots_file(url)
@@ -127,15 +144,22 @@ if __name__ == "__main__":
                 get_urls(driver, frontier)
         else:
             # no robots.txt => parse everything :)
+            # Write site to database without
             db.add_site(base_url, None, None)
             get_urls(driver, frontier)
 
-        db.add_page(html_data.url, html_data.text, html_data.status_code, html_data.headers['date'])
+        date_res = None
+        if 'Date' in http_head.headers:
+            date_res = http_head.headers['Date']
+
+        db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
 
         # get all images from a site
+        """
         for n in driver.find_elements_by_tag_name("//img[@src]"):
             img_url = n.get_attribute("src")
             save_img(img_url)
+        """
 
     driver.close()
 

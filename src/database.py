@@ -20,6 +20,12 @@ class Database:
             self.conn = psycopg2.connect(**params)
             print('Connection to DB successful')
 
+            print('Delete data from page table')
+            self.conn.cursor().execute("DELETE FROM crawldb.page")
+            print('Delete data from site table')
+            self.conn.cursor().execute("DELETE FROM crawldb.site")
+            self.conn.commit()
+
             return self.conn
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
@@ -27,12 +33,11 @@ class Database:
     def add_site(self, site, robot, sitemap):
         cur = self.conn.cursor()
 
-        # Check if site already exists
         cur.execute("SELECT id FROM crawldb.site WHERE domain = '" + site + "'")
-        row = cur.fetchone()
+        id = cur.fetchone()
 
         # Insert site if not yet inserted
-        if row is None:
+        if id is None:
             cur.execute("INSERT INTO crawldb.site(domain, robots_content, sitemap_content) "
                         "VALUES (%s, %s, %s) RETURNING id", (site, robot, sitemap, ))
             self.site_id = cur.fetchone()[0]
@@ -48,9 +53,13 @@ class Database:
     def add_page(self, url, html_content, http_code, accessed_time):
         cur = self.conn.cursor()
 
-        cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) "
-                    "VALUES (%s, %s, %s, %s, %s, %s)",
-                    (self.site_id, 'HTML', url, html_content, http_code, accessed_time))
+        row = (self.site_id, 'HTML', url, html_content, http_code, accessed_time,)
+
+        try:
+            cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) "
+                        "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (url) DO UPDATE SET url = '" + url + "'", row)
+        except Exception:
+            return
 
         self.conn.commit()
 

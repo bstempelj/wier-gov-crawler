@@ -1,8 +1,9 @@
 TODO:
-[ ] add database
+[x] add database
 [ ] support requests/second and delays from robots.txt
-[ ] save sitemap content to db
-[ ] store links in a postgres database
+[x] save sitemap content to db
+[x] store links in a postgres database
+[ ] save actual data to database (imgs, pdf, doc)
 
 DOING:
 [X] skip links with javascript:void(0) in src
@@ -18,3 +19,6 @@ DONE:
 [X] parse robots.txt for sitemaps
 [X] parse sitemaps
 [X] use urllib.parse.urlparse to canonicalize URLs
+
+
+if you have trouble with ssl certificate -> sudo pip3 install certifi && https://stackoverflow.com/questions/27835619/urllib-and-ssl-certificate-verify-failed-error
