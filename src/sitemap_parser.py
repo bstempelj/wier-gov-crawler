@@ -5,14 +5,17 @@ import xml.etree.ElementTree as ET
 class SitemapParser:
 	def __init__(self):
 		self._sitemaps = []
-		self._urls = []
+		self.urls = []
 
 	def _parse_sitemap(self, sitemap):
-		root = ET.fromstring(sitemap)
-		for url in root:
-			for prop in url:
-				if prop.tag.endswith("loc"):
-					self._urls.append(prop.text.strip())
+		try:
+			root = ET.fromstring(sitemap)
+			for url in root:
+				for prop in url:
+					if prop.tag.endswith("loc"):
+						self.urls.append(prop.text.strip())
+		except Exception:
+			pass
 
 	def find_sitemaps(self, base_url):
 		self._sitemaps[:] = [] # clear previous entries
@@ -41,5 +44,5 @@ class SitemapParser:
 			if r.status_code == 200:
 				self._parse_sitemap(r.text)
 
-	def get_sitemap_urls(self):
-		return ' '.join(self._urls)
+	def urls_to_string(self):
+		return ' '.join(self.urls)

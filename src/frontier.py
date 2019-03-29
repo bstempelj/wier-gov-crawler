@@ -12,8 +12,8 @@ class Frontier:
     def _norm_url(self, url):
         url = urlparse(url)
 
-        # lowercase network part
-        url = url._replace(netloc=url.netloc.lower())
+        # lowercase network part and remove www
+        url = url._replace(netloc=url.netloc.lower().replace("www.", ""))
 
         # unquote and quote path
         url = url._replace(path=unquote(url.path))
