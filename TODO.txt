@@ -10,6 +10,7 @@ DOING:
 [ ] handle onClick events
 [ ] parse other files like .pdf, .doc, .docx, .ppt, and .pptx
 [ ] respect craw-delay in robots.txt
+[ ] skip unnecessary urls (non seed) by not adding them to the frontier
 
 DONE:
 [X] get all links from the FRI page
