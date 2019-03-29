@@ -32,7 +32,7 @@ class Browser(Enum):
 	CHROME = 2
 
 
-seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
+seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "https://podatki.gov.si", "http://e-prostor.gov.si"]
 img_folder = "images"
 browser = Browser.FIREFOX
 
@@ -48,12 +48,16 @@ def has_robots_file(url):
 
 
 def get_urls(driver, frontier):
+	global seed
+
 	# for n in driver.find_elements_by_xpath("//*[@onclick]"):
 	#     print(n)
 
 	for n in driver.find_elements_by_xpath("//a[@href]"):
 		link = n.get_attribute("href")
-		if len(link) > 0 and link != "javascript:void(0)":
+		if len(link) > 0 and \
+			link != "javascript:void(0)" and \
+			get_base_url(link) in seed:
 			frontier.add_url(link)
 
 
@@ -79,22 +83,21 @@ if __name__ == "__main__":
 	robots = []
 	rp = RobotFileParser()
 	sp = SitemapParser()
-	# db = Database()
+	db = Database()
 	site_id = -1
 
-	frontier.add_urls(seed)
+	frontier.add_url(seed[2])
 	while frontier.has_urls() and not frontier.max_reached():
 		# url info -
-		url = frontier.get_next().replace("www.", "")
+		url = frontier.get_next()
 		base_url = get_base_url(url)
 		robots_url = base_url + "/robots.txt"
 
-		# Check that we are still on track
-		if base_url not in seed:
-			continue
+		print(url)
 
 		# connect to website
 		http_head = requests.head(url)  # .page_source v bazo
+
 		driver.get(url)
 
 		# check for robots.txt
@@ -117,10 +120,13 @@ if __name__ == "__main__":
 			frontier.add_urls(sp.urls)
 
 			# Write site to database
-			# db.add_site(base_url, robot_file[1], sitemaps)
+			db.add_site(base_url, robot_file[1], sitemaps)
 
 			if rp.can_fetch("*", url):
 				get_urls(driver, frontier)
+
+			# if rp.crawl_delay("*") is not None:
+			# 	print(True)
 		else:
 			# no robots.txt => parse everything :)
 			get_urls(driver, frontier)
@@ -129,7 +135,7 @@ if __name__ == "__main__":
 		if 'Date' in http_head.headers:
 			date_res = http_head.headers['Date']
 
-		# db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
+		db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
 
 	driver.close()
 
