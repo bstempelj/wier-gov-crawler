@@ -33,14 +33,8 @@ class Browser(Enum):
 
 
 seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
-
-
-# site = "https://podatki.gov.si"
-# site = "https://fov.um.si/sl"
-
-
 img_folder = "images"
-browser = Browser.CHROME
+browser = Browser.FIREFOX
 
 
 def norm_url(url):
@@ -84,8 +78,7 @@ def check_if_doc(url):
     url = norm_url(url)
     url, ext = splitext(url)
     if ext in [".doc", ".docx", ".pdf", ".xlsx", ".xls", ".PPT"]:
-
-
+        pass
 
 
 if __name__ == "__main__":
@@ -103,11 +96,11 @@ if __name__ == "__main__":
     robots = []
     rp = RobotFileParser()
     sp = SitemapParser()
-    db = Database()
+    # db = Database()
     site_id = -1
 
     frontier.add_urls(seed)
-    while frontier.has_urls() and not frontier.max_reached():
+    while frontier.has_urls() and not frontier.max_reached() and i < 10:
         # url info -
         url = frontier.get_next().replace("www.", "")
         base_url = get_base_url(url)
@@ -118,7 +111,6 @@ if __name__ == "__main__":
             continue
 
         # connect to website
-        print(url)
         http_head = requests.head(url)  # .page_source v bazo
         driver.get(url)
 
@@ -126,6 +118,11 @@ if __name__ == "__main__":
         robot_file = has_robots_file(url)
         if base_url not in robots and robot_file[0]:
             robots.append(base_url)
+
+        # parse sitemap
+        sp.find_sitemaps(base_url)
+        sp.parse_sitemaps()
+        print(sp.urls)
 
         # respect robots.txt
         if base_url in robots:
@@ -137,32 +134,29 @@ if __name__ == "__main__":
             sp.parse_sitemaps()
 
             # Write site to database
-            db.add_site(base_url, robot_file[1], sp.get_sitemaps())
+            # db.add_site(base_url, robot_file[1], sitemaps)
             frontier.add_urls(sp.urls)
 
             if rp.can_fetch("*", url):
                 get_urls(driver, frontier)
         else:
             # no robots.txt => parse everything :)
-            # Write site to database without
-            db.add_site(base_url, None, None)
+
             get_urls(driver, frontier)
 
         date_res = None
         if 'Date' in http_head.headers:
             date_res = http_head.headers['Date']
 
-        db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
+        # db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
 
         # get all images from a site
-        """
-        for n in driver.find_elements_by_tag_name("//img[@src]"):
-            img_url = n.get_attribute("src")
-            save_img(img_url)
-        """
+        # for n in driver.find_elements_by_tag_name("//img[@src]"):
+        #     img_url = n.get_attribute("src")
+        #     save_img(img_url)
 
     driver.close()
 
     # print history
-    for url in frontier._history.values():
-        print(url)
+    # for url in frontier._history.values():
+    #     print(url)
