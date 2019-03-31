@@ -33,6 +33,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # disable SSL (don't try this at home kids)
 ssl._create_default_https_context = ssl._create_unverified_context
 
+
 class Browser(Enum):
     FIREFOX = 1
     CHROME = 2
@@ -172,7 +173,7 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
             date_res = http_head.headers['Date']
 
         site_id = seed.index(base_url)+1
-        db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id)
+        page_id = db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id)
 
         counter += 1
         if (counter % 1000) == 0:
@@ -213,29 +214,25 @@ if __name__ == "__main__":
 
     init_sites()
     print(robots)
+    start = time.time()
 
     # Read thread num argument
     thread_num = 1
     if len(sys.argv) > 1:
         thread_num = int(sys.argv[1])
+    else:
+        crawler('1', frontier, db, rp, sp, robots, start)
 
-    start = time.time()
-    th_list = list()
-    for i in range(thread_num):
-        th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp, robots, start)))
+    if thread_num > 1:
+        th_list = list()
+        for i in range(thread_num):
+            th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp, robots, start)))
 
-    for i in range(thread_num):
-        th_list[i].start()
+        for i in range(thread_num):
+            th_list[i].start()
 
-    for i in range(thread_num):
-        th_list[i].join()
-
-    # get all images from a site
-    """
-    for n in driver.find_elements_by_tag_name("//img[@src]"):
-        img_url = n.get_attribute("src")
-        save_img(img_url)
-    """
+        for i in range(thread_num):
+            th_list[i].join()
 
     # print history
     for url in frontier._history.values():
