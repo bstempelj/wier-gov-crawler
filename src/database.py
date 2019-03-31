@@ -5,7 +5,6 @@ import requests
 
 
 class Database:
-    site_id = -1
     data_types = None
     use_db = True
 
@@ -27,6 +26,9 @@ class Database:
             self.conn = psycopg2.connect(**params)
             print('Connection to DB successful')
 
+            self.conn.cursor().execute("ALTER SEQUENCE crawldb.page_id_seq RESTART WITH 1;" \
+                                        "ALTER SEQUENCE crawldb.page_data_id_seq RESTART WITH 1;" \
+                                        "ALTER SEQUENCE crawldb.site_id_seq RESTART WITH 1;")
             print('Delete data from image table')
             self.conn.cursor().execute("DELETE FROM crawldb.image")
             print('Delete data from page_data table')
@@ -56,25 +58,14 @@ class Database:
             return
 
         cur = self.conn.cursor()
-
-        cur.execute("SELECT id FROM crawldb.site WHERE domain = '" + site + "'")
-        id = cur.fetchone()
-
-        # Insert site if not yet inserted
-        if id is None:
-            cur.execute("INSERT INTO crawldb.site(domain, robots_content, sitemap_content) "
-                        "VALUES (%s, %s, %s) RETURNING id", (site, robot, sitemap, ))
-            self.site_id = cur.fetchone()[0]
-            self.conn.commit()
-
-        """
         cur.execute("INSERT INTO crawldb.site(domain, robots_content, sitemap_content) "
-                    "SELECT '" + site + "' as domain, '" + robot + "' as robots_content, '" + sitemap + "' as sitemap_content "
-                    "FROM crawldb.site "
-                    "WHERE domain != '" + site + "' RETURNING id")
-        """
+                    "VALUES (%s, %s, %s) RETURNING id", (site, robot, sitemap,))
+        site_id = cur.fetchone()[0]
+        self.conn.commit()
 
-    def add_page(self, url, html_content, http_code, accessed_time):
+        return site_id
+
+    def add_page(self, url, html_content, http_code, accessed_time, site_id):
         if not self.use_db:
             return
 
@@ -83,7 +74,7 @@ class Database:
         doc = self._check_if_doc(url)
 
         # if document then html_content must be None and write content in page_data table
-        row = (self.site_id, doc[0], url, html_content if doc[1] is None else None, http_code, accessed_time,)
+        row = (site_id, doc[0], url, html_content if doc[1] is None else None, http_code, accessed_time,)
 
         try:
             cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) "
@@ -104,6 +95,7 @@ class Database:
 
         except Exception as e:
             print(e)
+            print(row)
             return
 
         self.conn.commit()

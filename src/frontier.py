@@ -3,6 +3,7 @@ from collections import deque
 from urllib.parse import urlparse, quote, unquote
 from os.path import splitext, basename, normpath
 
+
 class Frontier:
     def __init__(self):
         self._frontier = deque()
@@ -59,7 +60,7 @@ class Frontier:
             self.add_url(url)
 
     def get_next(self):
-        return self._frontier.pop()
+        return self._frontier.popleft()
 
     def has_urls(self):
         return len(self._frontier) > 0
