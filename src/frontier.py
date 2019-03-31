@@ -1,17 +1,29 @@
 import hashlib
 from collections import deque
-from urllib.parse import urlparse, quote, unquote
+from urllib.parse import urlparse, urlsplit, quote, unquote
 from os.path import splitext, basename, normpath
 
 
 class Frontier:
-    def __init__(self):
+    def __init__(self, seed):
         self._frontier = deque()
+        self._seed = seed
         self._history = {}
-        self._max_urls = -1
+
+    def _base_url(self, url):
+        split_url = urlsplit(url)
+        return "://".join([split_url.scheme, split_url.netloc])
+
+    def _get_url_hash(self, url):
+        m = hashlib.sha1()
+        m.update(url.encode('utf-8'))
+        return m.hexdigest()
 
     def _norm_url(self, url):
         url = urlparse(url)
+
+        # change https to http
+        url = url._replace(scheme=url.scheme.replace("https", "http"))
 
         # lowercase network part and remove www
         url = url._replace(netloc=url.netloc.lower().replace("www.", ""))
@@ -47,8 +59,8 @@ class Frontier:
 
     def add_url(self, url, page_id):
         url = self._norm_url(url)
-        if not self.max_reached() or self._max_urls == -1:
-            self._max_urls -= 1
+        base = self._base_url(url)
+        if base in self._seed:
             hash_text = self._get_url_hash(url)
             if hash_text not in self._history:
                 self._history[hash_text] = url
@@ -66,11 +78,3 @@ class Frontier:
 
     def frontier_content(self):
         return self._frontier
-
-    def max_reached(self):
-        return self._max_urls == 0
-
-    def _get_url_hash(self, url):
-        m = hashlib.sha1()
-        m.update(url.encode('utf-8'))
-        return m.hexdigest()
