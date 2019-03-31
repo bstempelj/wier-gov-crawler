@@ -173,7 +173,7 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
             date_res = http_head.headers['Date']
 
         site_id = seed.index(base_url)+1
-        page_id = db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id, frontier_data[1])
+        page_id = db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id, frontier_data[1], frontier.get_url_hash(driver.page_source))
 
         counter += 1
         if (counter % 1000) == 0:
