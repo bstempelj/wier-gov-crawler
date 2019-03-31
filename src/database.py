@@ -29,6 +29,8 @@ class Database:
             self.conn.cursor().execute("ALTER SEQUENCE crawldb.page_id_seq RESTART WITH 1;" \
                                         "ALTER SEQUENCE crawldb.page_data_id_seq RESTART WITH 1;" \
                                         "ALTER SEQUENCE crawldb.site_id_seq RESTART WITH 1;")
+            print('Delete data from link table')
+            self.conn.cursor().execute("DELETE FROM crawldb.link")
             print('Delete data from image table')
             self.conn.cursor().execute("DELETE FROM crawldb.image")
             print('Delete data from page_data table')
@@ -65,7 +67,7 @@ class Database:
 
         return site_id
 
-    def add_page(self, url, html_content, http_code, accessed_time, site_id):
+    def add_page(self, url, html_content, http_code, accessed_time, site_id, from_page):
         if not self.use_db:
             return
 
@@ -80,6 +82,8 @@ class Database:
             cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) "
                         "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (url) DO UPDATE SET url = '" + url + "'  RETURNING id", row)
             page_id = cur.fetchone()[0]
+
+            self.add_link(from_page, page_id)
 
             # if file write to page_data table
             if doc[0] == 'BINARY':
@@ -98,6 +102,18 @@ class Database:
             print(row)
             return
 
+        self.conn.commit()
+        return page_id
+
+    def add_link(self, from_page, to_page):
+        if not self.use_db:
+            return
+
+        cur = self.conn.cursor()
+
+        cur.execute(
+            "INSERT INTO crawldb.link(from_page, to_page) "
+            "VALUES (%s, %s)", (from_page, to_page,))
         self.conn.commit()
 
     def get_connection(self):

@@ -45,19 +45,18 @@ class Frontier:
 
         return "{}://{}{}".format(url.scheme, url.netloc, url.path)
 
-    def add_url(self, url):
+    def add_url(self, url, page_id):
         url = self._norm_url(url)
         if not self.max_reached() or self._max_urls == -1:
             self._max_urls -= 1
             hash_text = self._get_url_hash(url)
             if hash_text not in self._history:
                 self._history[hash_text] = url
-                self._frontier.append(url)
+                self._frontier.append((url, page_id,))
 
-    def add_urls(self, urls):
+    def add_urls(self, urls, page_id):
         for url in urls:
-
-            self.add_url(url)
+            self.add_url(url, page_id)
 
     def get_next(self):
         return self._frontier.popleft()

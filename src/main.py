@@ -53,10 +53,10 @@ def get_base_url(url):
 def init_sites():
     global seed
 
-    for site in seed:
+    for idx, site in enumerate(seed):
         base_url = get_base_url(site)
         robots_url = base_url + "/robots.txt"
-        frontier.add_url(base_url)
+        frontier.add_url(base_url, 1)
 
         # check for robots.txt
         robot_file = has_robots_file(base_url)
@@ -70,7 +70,6 @@ def init_sites():
 
             # Write site to database
             db.add_site(base_url, robot_file[1], sp.urls_to_string())
-            frontier.add_urls(sp.urls)
         else:
             db.add_site(base_url, None, None)
 
@@ -85,7 +84,7 @@ def contains(s, attrs):
     return True in res
 
 
-def get_urls(driver, frontier):
+def get_urls(driver, frontier, page_id):
     global seed
 
     # Parsing onClick
@@ -113,7 +112,7 @@ def get_urls(driver, frontier):
         if len(link) > 0 and \
             link.find('javascript:void(0)') == -1 and \
             get_base_url(link) in seed:
-                frontier.add_url(link)
+                frontier.add_url(link, page_id)
 
     # Parsing images
     for n in driver.find_elements_by_xpath("//img[@src]"):
@@ -122,7 +121,7 @@ def get_urls(driver, frontier):
         if ext in [".png", ".jpg", ".jpeg", ".gif"] and \
             get_base_url(url) in seed:
                 # print(url)
-                frontier.add_url(url)
+                frontier.add_url(url, page_id)
 
 
 def init_browser():
@@ -145,7 +144,8 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
 
     while frontier.has_urls() and not frontier.max_reached():
         # url info -
-        url = frontier.get_next()
+        frontier_data = frontier.get_next()
+        url = frontier_data[0]
         base_url = get_base_url(url)
         robots_url = base_url + "/robots.txt"
 
@@ -154,7 +154,7 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
             continue
 
         # connect to website
-        # print('Thread: ' + th_num + ' - ' + url)
+        print('Thread: ' + th_num + ' - ' + url)
         http_head = requests.head(url)  # .page_source v bazo
 
         # Skip links which give 404 not found (links still exists but file doesnt anymore)
@@ -173,7 +173,7 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
             date_res = http_head.headers['Date']
 
         site_id = seed.index(base_url)+1
-        page_id = db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id)
+        page_id = db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id, frontier_data[1])
 
         counter += 1
         if (counter % 1000) == 0:
@@ -192,11 +192,11 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
             rp.read()
 
             if rp.can_fetch("*", url):
-                get_urls(driver, frontier)
+                get_urls(driver, frontier, page_id)
         elif is_html:
             # no robots.txt => parse everything :)
             # Write site to database without
-            get_urls(driver, frontier)
+            get_urls(driver, frontier, page_id)
 
         if not frontier.has_urls():
             print(th_num + " sleep")
