@@ -37,21 +37,7 @@ class Browser(Enum):
 
 use_database = True
 seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
-
-
-# site = "https://podatki.gov.si"
-# site = "https://fov.um.si/sl"
-
-
-img_folder = "images"
-browser = Browser.CHROME
-
-
-def norm_url(url):
-    q = url.find("?")
-    if q != -1:
-        return url[:q]
-    return url
+browser = Browser.FIREFOX
 
 
 def get_base_url(url):
@@ -65,23 +51,23 @@ def has_robots_file(url):
 
 
 def get_urls(driver, frontier):
+    global seed
+
     # for n in driver.find_elements_by_xpath("//*[@onclick]"):
     #     print(n)
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
-        if len(link) > 0 and link != "javascript:void(0)":
+        if len(link) > 0 and \
+            link != "javascript:void(0)" and \
+            get_base_url(link) in seed:
             frontier.add_url(link)
 
 
-def save_img(url):
+def check_if_doc(url):
     url = norm_url(url)
-    filename, ext = splitext(url)
-    if ext in [".png", ".jpg", ".jpeg", ".gif"]:
-        filename = basename(filename)
-        print("Downloading: %s" % filename)
-        r = requests.get(url)
-        i = Image.open(BytesIO(r.content))
-        i.save("images/%s%s" % (filename, ext))
+    url, ext = splitext(url)
+    if ext in [".doc", ".docx", ".pdf", ".xlsx", ".xls", ".PPT"]:
+        pass
 
 
 def crawler(th_num, frontier, db, rp, sp):
@@ -195,3 +181,4 @@ if __name__ == "__main__":
     # print history
     for url in frontier._history.values():
         print(url)
+

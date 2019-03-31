@@ -1,17 +1,17 @@
 TODO:
-[x] add database
-[ ] support requests/second and delays from robots.txt
-[x] save sitemap content to db
-[x] store links in a postgres database
 [ ] save actual data to database (imgs, pdf, doc)
-
-DOING:
-[X] skip links with javascript:void(0) in src
+[ ] get all images from a site
 [ ] handle onClick events
 [ ] parse other files like .pdf, .doc, .docx, .ppt, and .pptx
 [ ] respect craw-delay in robots.txt
+[ ] support requests/second and delays from robots.txt
 
 DONE:
+[x] store links in a postgres database
+[x] save sitemap content to db
+[x] add database
+[X] skip links with javascript:void(0) in src
+[X] skip unnecessary urls (non seed) by not adding them to the frontier
 [X] get all links from the FRI page
 [X] get all images from the FRI page
 [X] read robots.txt before crawling a site
