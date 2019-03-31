@@ -34,8 +34,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 ssl._create_default_https_context = ssl._create_unverified_context
 
 class Browser(Enum):
-    FIREFOX = 1
-    CHROME = 2
+	FIREFOX = 1
+	CHROME = 2
 
 
 use_database = False
@@ -44,155 +44,183 @@ browser = Browser.FIREFOX
 
 
 def get_base_url(url):
-    split_url = urlsplit(url)
-    return "://".join([split_url.scheme, split_url.netloc])
+	split_url = urlsplit(url)
+	return "://".join([split_url.scheme, split_url.netloc])
 
 
 def has_robots_file(url):
-    r = requests.get(get_base_url(url) + "/robots.txt")
-    return r.status_code == 200, r.text
+	r = requests.get(get_base_url(url) + "/robots.txt")
+	return r.status_code == 200, r.text
+
+
+def contains(s, attrs):
+	res = [s.find(a) != -1 for a in attrs]
+	return True in res
 
 
 def get_urls(driver, frontier):
-    global seed
+	global seed
 
-    for n in driver.find_elements_by_xpath("//a[@href]"):
-        link = n.get_attribute("href")
-        if len(link) > 0 and \
-            link != "javascript:void(0)" and \
-            get_base_url(link) in seed:
-                frontier.add_url(link)
+	# Parsing onClick
+	for n in driver.find_elements_by_xpath("//*[@onclick]"):
+		onclick = n.get_attribute("onclick")
+		link = ""
 
-    # Parsing images
-    for n in driver.find_elements_by_xpath("//img[@src]"):
-        url = n.get_attribute("src")
-        filename, ext = splitext(url)
-        if ext in [".png", ".jpg", ".jpeg", ".gif"] and \
-            get_base_url(url) in seed:
-                # print(url)
-                frontier.add_url(url)
+		if contains(onclick, ["parent.open", "window.open"]):
+			link = onclick.split("(")[1]
+			link = link.split(",")
+			link = link[0] if len(link) != 1 else link[0][:-1]
+		elif contains(onclick, ["location.href", "parent.location"]):
+			link = onclick.split("=")[1].strip()
+
+		if link != "":
+			print("FOUND:", link)
+
+	# Parsing links
+	for n in driver.find_elements_by_xpath("//a[@href]"):
+		link = n.get_attribute("href").replace("www.", "")
+		if len(link) > 0 and \
+			link != "javascript:void(0)" and \
+			get_base_url(link) in seed:
+				frontier.add_url(link)
+
+	# Parsing images
+	for n in driver.find_elements_by_xpath("//img[@src]"):
+		url = n.get_attribute("src")
+		filename, ext = splitext(url)
+		if ext in [".png", ".jpg", ".jpeg", ".gif"] and \
+			get_base_url(url) in seed:
+				# print(url)
+				frontier.add_url(url)
 
 
 def crawler(th_num, frontier, db, rp, sp, robots):
-    # Driver for selenium
-    if browser == Browser.FIREFOX:
-        options = FirefoxOptions()
-        options.headless = True
-        driver = Firefox(executable_path="geckodriver", options=options)
-    else:
-        options = ChromeOptions()
-        options.headless = True
-        driver = Chrome(executable_path="chromedriver", options=options)
+	# Driver for selenium
+	if browser == Browser.FIREFOX:
+		options = FirefoxOptions()
+		options.headless = True
+		driver = Firefox(executable_path="geckodriver", options=options)
+	else:
+		options = ChromeOptions()
+		options.headless = True
+		driver = Chrome(executable_path="chromedriver", options=options)
 
-    """
-    print('Start thread ' + th_num)
-    if th_num == '1':
-        time.sleep(30)
-    """
+	"""
+	print('Start thread ' + th_num)
+	if th_num == '1':
+		time.sleep(30)
+	"""
 
-    while frontier.has_urls() and not frontier.max_reached():
-        # url info -
-        url = frontier.get_next()
-        base_url = get_base_url(url)
-        robots_url = base_url + "/robots.txt"
+	while frontier.has_urls() and not frontier.max_reached():
+		# url info -
+		url = frontier.get_next()
+		base_url = get_base_url(url)
+		robots_url = base_url + "/robots.txt"
 
-        # Check that we are still on track
-        if base_url not in seed:
-            continue
+		# Check that we are still on track
+		if base_url not in seed:
+			continue
 
-        # connect to website
-        print('Thread: ' + th_num + ' - ' + url)
-        http_head = requests.head(url)  # .page_source v bazo
+		# connect to website
+		print('Thread: ' + th_num + ' - ' + url)
+		http_head = requests.head(url)  # .page_source v bazo
 
-        # Skip links which give 404 not found (links still exists but file doesnt anymore)
-        if http_head.status_code == 404:
-            continue
+		# Skip links which give 404 not found (links still exists but file doesnt anymore)
+		if http_head.status_code == 404:
+			continue
 
-        try:
-            driver.get(url)
-        except Exception as e:
-            options = ChromeOptions()
-            options.headless = True
-            driver = Chrome(executable_path="chromedriver", options=options)
-            continue
+		try:
+			driver.get(url)
+		except Exception as e:
+			print(e)
+			if browser == Browser.FIREFOX:
+				options = FirefoxOptions()
+				options.headless = True
+				driver = Firefox(executable_path="geckodriver", options=options)
+			else:
+				options = ChromeOptions()
+				options.headless = True
+				driver = Chrome(executable_path="chromedriver", options=options)
+			continue
 
-        is_html = True
-        if 'Content-Type' in http_head.headers:
-            con_type = http_head.headers['Content-Type']
-            is_html = True if con_type.find('html', 0) > -1 else False
+		is_html = True
+		if 'Content-Type' in http_head.headers:
+			con_type = http_head.headers['Content-Type']
+			is_html = True if con_type.find('html', 0) > -1 else False
 
 
-        # check for robots.txt
-        robot_file = has_robots_file(url)
-        if base_url not in robots and robot_file[0]:
-            robots.append(base_url)
+		# check for robots.txt
+		robot_file = has_robots_file(url)
+		if base_url not in robots and robot_file[0]:
+			robots.append(base_url)
 
-        # respect robots.txt
-        if base_url in robots and is_html:
-            rp.set_url(robots_url)
-            rp.read()
+		# respect robots.txt
+		if base_url in robots and is_html:
+			rp.set_url(robots_url)
+			rp.read()
 
-            # parse sitemap
-            sp.find_sitemaps(robots_url)
-            sp.parse_sitemaps()
+			# parse sitemap
+			sp.find_sitemaps(robots_url)
+			sp.parse_sitemaps()
 
-            # Write site to database
-            db.add_site(base_url, robot_file[1], sp.urls_to_string())
-            frontier.add_urls(sp.urls)
+			# Write site to database
+			db.add_site(base_url, robot_file[1], sp.urls_to_string())
+			frontier.add_urls(sp.urls)
 
-            if rp.can_fetch("*", url):
-                get_urls(driver, frontier)
-        elif is_html:
-            # no robots.txt => parse everything :)
-            # Write site to database without
-            db.add_site(base_url, None, None)
-            get_urls(driver, frontier)
+			if rp.can_fetch("*", url):
+				get_urls(driver, frontier)
+		elif is_html:
+			# no robots.txt => parse everything :)
+			# Write site to database without
+			db.add_site(base_url, None, None)
+			get_urls(driver, frontier)
 
-        date_res = None
-        if 'Date' in http_head.headers:
-            date_res = http_head.headers['Date']
+		date_res = None
+		if 'Date' in http_head.headers:
+			date_res = http_head.headers['Date']
 
-        db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
+		db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
 
-        if not frontier.has_urls():
-            print(th_num + " sleep")
-            time.sleep(10)
+		if not frontier.has_urls():
+			print(th_num + " sleep")
+			time.sleep(10)
 
-    driver.close()
+	driver.close()
 
 
 if __name__ == "__main__":
-    frontier = Frontier()
-    robots = []
-    rp = RobotFileParser()
-    sp = SitemapParser()
-    db = Database(use_database)
+	frontier = Frontier()
+	robots = []
+	rp = RobotFileParser()
+	sp = SitemapParser()
+	db = Database(use_database)
 
-    frontier.add_urls(seed)
+	frontier.add_urls(seed)
 
-    # Read thread num argument
-    thread_num = 1
-    if len(sys.argv) > 1:
-        thread_num = int(sys.argv[1])
+	# Read thread num argument
+	thread_num = 1
+	if len(sys.argv) > 1:
+		thread_num = int(sys.argv[1])
 
-    th_list = list()
-    for i in range(thread_num):
-        th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp, robots)))
+	th_list = list()
+	for i in range(thread_num):
+		th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp, robots)))
 
-    for i in range(thread_num):
-        th_list[i].start()
+	for i in range(thread_num):
+		th_list[i].start()
 
-    for i in range(thread_num):
-        th_list[i].join()
+	for i in range(thread_num):
+		th_list[i].join()
 
-    # get all images from a site
-    """
-    for n in driver.find_elements_by_tag_name("//img[@src]"):
-        img_url = n.get_attribute("src")
-        save_img(img_url)
-    """
+	# get all images from a site
+	"""
+	for n in driver.find_elements_by_tag_name("//img[@src]"):
+		img_url = n.get_attribute("src")
+		save_img(img_url)
+	"""
 
-    # print history
-    for url in frontier._history.values():
-        print(url)
+	# print history
+	print("history")
+	for url in frontier._history.values():
+		print(url)
 
