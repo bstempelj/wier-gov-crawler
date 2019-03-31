@@ -1,4 +1,5 @@
 import os
+import ssl
 import requests
 from database import Database
 
@@ -29,15 +30,17 @@ from selenium.webdriver.support.wait import WebDriverWait
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# disable SSL (don't try this at home kids)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class Browser(Enum):
     FIREFOX = 1
     CHROME = 2
 
 
-use_database = True
+use_database = False
 seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
-browser = Browser.CHROME
+browser = Browser.FIREFOX
 
 
 def get_base_url(url):
@@ -89,7 +92,7 @@ def crawler(th_num, frontier, db, rp, sp):
     """
     while frontier.has_urls() and not frontier.max_reached():
         # url info -
-        url = frontier.get_next().replace("www.", "")
+        url = frontier.get_next()
         base_url = get_base_url(url)
         robots_url = base_url + "/robots.txt"
 
@@ -157,7 +160,7 @@ if __name__ == "__main__":
     frontier.add_urls(seed)
 
     # Read thread num argument
-    if len(sys.argv) > 0:
+    if len(sys.argv) > 1:
         thread_num = int(sys.argv[1])
     else:
         thread_num = 1
