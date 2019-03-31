@@ -56,8 +56,6 @@ def has_robots_file(url):
 def get_urls(driver, frontier):
     global seed
 
-    # for n in driver.find_elements_by_xpath("//*[@onclick]"):
-    #     print(n)
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
         if len(link) > 0 and \
