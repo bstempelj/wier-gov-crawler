@@ -61,17 +61,19 @@ def get_urls(driver, frontier):
         if len(link) > 0 and \
             link != "javascript:void(0)" and \
             get_base_url(link) in seed:
-            frontier.add_url(link)
+                frontier.add_url(link)
+
+    # Parsing images
+    for n in driver.find_elements_by_xpath("//img[@src]"):
+        url = n.get_attribute("src")
+        filename, ext = splitext(url)
+        if ext in [".png", ".jpg", ".jpeg", ".gif"] and \
+            get_base_url(url) in seed:
+                # print(url)
+                frontier.add_url(url)
 
 
-def check_if_doc(url):
-    url = norm_url(url)
-    url, ext = splitext(url)
-    if ext in [".doc", ".docx", ".pdf", ".xlsx", ".xls", ".PPT"]:
-        pass
-
-
-def crawler(th_num, frontier, db, rp, sp):
+def crawler(th_num, frontier, db, rp, sp, robots):
     # Driver for selenium
     if browser == Browser.FIREFOX:
         options = FirefoxOptions()
@@ -82,12 +84,12 @@ def crawler(th_num, frontier, db, rp, sp):
         options.headless = True
         driver = Chrome(executable_path="chromedriver", options=options)
 
-
     """
     print('Start thread ' + th_num)
     if th_num == '1':
         time.sleep(30)
     """
+
     while frontier.has_urls() and not frontier.max_reached():
         # url info -
         url = frontier.get_next()
@@ -101,6 +103,11 @@ def crawler(th_num, frontier, db, rp, sp):
         # connect to website
         print('Thread: ' + th_num + ' - ' + url)
         http_head = requests.head(url)  # .page_source v bazo
+
+        # Skip links which give 404 not found (links still exists but file doesnt anymore)
+        if http_head.status_code == 404:
+            continue
+
         try:
             driver.get(url)
         except Exception as e:
@@ -109,13 +116,19 @@ def crawler(th_num, frontier, db, rp, sp):
             driver = Chrome(executable_path="chromedriver", options=options)
             continue
 
+        is_html = True
+        if 'Content-Type' in http_head.headers:
+            con_type = http_head.headers['Content-Type']
+            is_html = True if con_type.find('html', 0) > -1 else False
+
+
         # check for robots.txt
         robot_file = has_robots_file(url)
         if base_url not in robots and robot_file[0]:
             robots.append(base_url)
 
         # respect robots.txt
-        if base_url in robots:
+        if base_url in robots and is_html:
             rp.set_url(robots_url)
             rp.read()
 
@@ -129,7 +142,7 @@ def crawler(th_num, frontier, db, rp, sp):
 
             if rp.can_fetch("*", url):
                 get_urls(driver, frontier)
-        else:
+        elif is_html:
             # no robots.txt => parse everything :)
             # Write site to database without
             db.add_site(base_url, None, None)
@@ -158,14 +171,13 @@ if __name__ == "__main__":
     frontier.add_urls(seed)
 
     # Read thread num argument
+    thread_num = 1
     if len(sys.argv) > 1:
         thread_num = int(sys.argv[1])
-    else:
-        thread_num = 1
 
     th_list = list()
     for i in range(thread_num):
-        th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp,)))
+        th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp, robots)))
 
     for i in range(thread_num):
         th_list[i].start()
