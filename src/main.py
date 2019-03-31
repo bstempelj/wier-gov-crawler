@@ -37,7 +37,7 @@ class Browser(Enum):
 
 use_database = True
 seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
-browser = Browser.FIREFOX
+browser = Browser.CHROME
 
 
 def get_base_url(url):
@@ -81,10 +81,12 @@ def crawler(th_num, frontier, db, rp, sp):
         options.headless = True
         driver = Chrome(executable_path="chromedriver", options=options)
 
+
+    """
     print('Start thread ' + th_num)
     if th_num == '1':
         time.sleep(30)
-
+    """
     while frontier.has_urls() and not frontier.max_reached():
         # url info -
         url = frontier.get_next().replace("www.", "")
@@ -121,7 +123,7 @@ def crawler(th_num, frontier, db, rp, sp):
             sp.parse_sitemaps()
 
             # Write site to database
-            db.add_site(base_url, robot_file[1], sp.get_sitemaps())
+            db.add_site(base_url, robot_file[1], sp.urls_to_string())
             frontier.add_urls(sp.urls)
 
             if rp.can_fetch("*", url):
@@ -139,7 +141,6 @@ def crawler(th_num, frontier, db, rp, sp):
         db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
 
         if not frontier.has_urls():
-            # print(frontier.frontier_content())
             print(th_num + " sleep")
             time.sleep(10)
 

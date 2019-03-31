@@ -10,6 +10,7 @@ class Database:
 
     def __init__(self, use_db):
         self.conn = None
+        self.use_db = use_db
 
         if use_db:
             self.connect()
@@ -46,8 +47,8 @@ class Database:
             print(error)
 
     def add_site(self, site, robot, sitemap):
-        if self.use_db:
-            self.connect()
+        if not self.use_db:
+            return
 
         cur = self.conn.cursor()
 
@@ -69,8 +70,8 @@ class Database:
         """
 
     def add_page(self, url, html_content, http_code, accessed_time):
-        if self.use_db:
-            self.connect()
+        if not self.use_db:
+            return
 
         cur = self.conn.cursor()
 
