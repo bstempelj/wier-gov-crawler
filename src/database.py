@@ -3,6 +3,7 @@ from dbconfig import config
 from os.path import splitext
 import requests
 
+
 class Database:
     site_id = -1
     data_types = None
@@ -26,12 +27,16 @@ class Database:
             self.conn = psycopg2.connect(**params)
             print('Connection to DB successful')
 
+            print('Delete data from image table')
+            self.conn.cursor().execute("DELETE FROM crawldb.image")
             print('Delete data from page_data table')
             self.conn.cursor().execute("DELETE FROM crawldb.page_data")
             print('Delete data from page table')
             self.conn.cursor().execute("DELETE FROM crawldb.page")
             print('Delete data from site table')
             self.conn.cursor().execute("DELETE FROM crawldb.site")
+            print('INSERT IMAGE code to page_type table')
+            self.conn.cursor().execute("INSERT INTO crawldb.page_type (code) VALUES ('IMAGE') ON CONFLICT (code) DO UPDATE SET code = 'IMAGE'")
             self.conn.commit()
 
             # Get all page types from database
@@ -91,6 +96,11 @@ class Database:
                     "INSERT INTO crawldb.page_data(page_id, data_type_code, data) "
                     "VALUES (%s, %s, %s)", (page_id, doc[2], doc[1],))
                 self.conn.commit()
+            elif doc[0] == 'IMAGE':
+                cur.execute(
+                    "INSERT INTO crawldb.image(page_id, filename, content_type, data, accessed_time) "
+                    "VALUES (%s, %s, %s, %s, %s)", (page_id, doc[3], doc[2], doc[1], accessed_time,))
+                self.conn.commit()
 
         except Exception as e:
             print(e)
@@ -110,5 +120,9 @@ class Database:
         if data_type_code in self.data_types:
             data = requests.get(url)
             return 'BINARY', data.content, data_type_code
+        elif ext in [".png", ".jpg", ".jpeg", ".gif"]:
+            data = requests.get(url)
+            filename = path[path.rindex("/")+1:]
+            return 'IMAGE', data.content, ext[1:].upper(), filename
         else:
             return 'HTML', None
