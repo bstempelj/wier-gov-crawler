@@ -1,4 +1,5 @@
 import os
+import ssl
 import requests
 from database import Database
 
@@ -29,6 +30,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# disable SSL (don't try this at home kids)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class Browser(Enum):
     FIREFOX = 1
@@ -76,11 +79,29 @@ def has_robots_file(url):
     return r.status_code == 200, r.text
 
 
+def contains(s, attrs):
+    res = [s.find(a) != -1 for a in attrs]
+    return True in res
+
+
 def get_urls(driver, frontier):
     global seed
 
-    # for n in driver.find_elements_by_xpath("//*[@onclick]"):
-    #     print(n)
+    # Parsing onClick
+    for n in driver.find_elements_by_xpath("//*[@onclick]"):
+        onclick = n.get_attribute("onclick")
+        link = ""
+
+        if contains(onclick, ["parent.open", "window.open"]):
+            link = onclick.split("(")[1]
+            link = link.split(",")
+            link = link[0] if len(link) != 1 else link[0][:-1]
+        elif contains(onclick, ["location.href", "parent.location"]):
+            link = onclick.split("=")[1].strip()
+
+        if link != "":
+            print("FOUND:", link)
+
     # Parsing links
     for n in driver.find_elements_by_xpath("//a[@href]"):
         try:
@@ -101,6 +122,7 @@ def get_urls(driver, frontier):
             get_base_url(url) in seed:
                 # print(url)
                 frontier.add_url(url)
+
 
 def init_browser():
     # Driver for selenium
@@ -218,4 +240,5 @@ if __name__ == "__main__":
     # print history
     for url in frontier._history.values():
         print(url)
+
 
