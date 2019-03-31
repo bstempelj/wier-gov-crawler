@@ -4,10 +4,13 @@ from database import Database
 
 from sitemap_parser import SitemapParser
 from frontier import Frontier
+import sys
+import time
 
 from PIL import Image
 from io import BytesIO
 from os.path import splitext, basename
+import threading as th
 
 from urllib.parse import urlsplit
 from urllib.robotparser import RobotFileParser
@@ -32,6 +35,7 @@ class Browser(Enum):
     CHROME = 2
 
 
+use_database = True
 seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
 
 
@@ -63,7 +67,6 @@ def has_robots_file(url):
 def get_urls(driver, frontier):
     # for n in driver.find_elements_by_xpath("//*[@onclick]"):
     #     print(n)
-
     for n in driver.find_elements_by_xpath("//a[@href]"):
         link = n.get_attribute("href")
         if len(link) > 0 and link != "javascript:void(0)":
@@ -80,16 +83,9 @@ def save_img(url):
         i = Image.open(BytesIO(r.content))
         i.save("images/%s%s" % (filename, ext))
 
-def check_if_doc(url):
-    url = norm_url(url)
-    url, ext = splitext(url)
-    if ext in [".doc", ".docx", ".pdf", ".xlsx", ".xls", ".PPT"]:
 
-
-
-
-if __name__ == "__main__":
-
+def crawler(th_num, frontier, db, rp, sp):
+    # Driver for selenium
     if browser == Browser.FIREFOX:
         options = FirefoxOptions()
         options.headless = True
@@ -99,14 +95,10 @@ if __name__ == "__main__":
         options.headless = True
         driver = Chrome(executable_path="chromedriver", options=options)
 
-    frontier = Frontier()
-    robots = []
-    rp = RobotFileParser()
-    sp = SitemapParser()
-    db = Database()
-    site_id = -1
+    print('Start thread ' + th_num)
+    if th_num == '1':
+        time.sleep(30)
 
-    frontier.add_urls(seed)
     while frontier.has_urls() and not frontier.max_reached():
         # url info -
         url = frontier.get_next().replace("www.", "")
@@ -118,9 +110,15 @@ if __name__ == "__main__":
             continue
 
         # connect to website
-        print(url)
+        print('Thread: ' + th_num + ' - ' + url)
         http_head = requests.head(url)  # .page_source v bazo
-        driver.get(url)
+        try:
+            driver.get(url)
+        except Exception as e:
+            options = ChromeOptions()
+            options.headless = True
+            driver = Chrome(executable_path="chromedriver", options=options)
+            continue
 
         # check for robots.txt
         robot_file = has_robots_file(url)
@@ -154,14 +152,45 @@ if __name__ == "__main__":
 
         db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res)
 
-        # get all images from a site
-        """
-        for n in driver.find_elements_by_tag_name("//img[@src]"):
-            img_url = n.get_attribute("src")
-            save_img(img_url)
-        """
+        if not frontier.has_urls():
+            # print(frontier.frontier_content())
+            print(th_num + " sleep")
+            time.sleep(10)
 
     driver.close()
+
+
+if __name__ == "__main__":
+    frontier = Frontier()
+    robots = []
+    rp = RobotFileParser()
+    sp = SitemapParser()
+    db = Database(use_database)
+
+    frontier.add_urls(seed)
+
+    # Read thread num argument
+    if len(sys.argv) > 0:
+        thread_num = int(sys.argv[1])
+    else:
+        thread_num = 1
+
+    th_list = list()
+    for i in range(thread_num):
+        th_list.append(th.Thread(target=crawler, args=(str(i), frontier, db, rp, sp,)))
+
+    for i in range(thread_num):
+        th_list[i].start()
+
+    for i in range(thread_num):
+        th_list[i].join()
+
+    # get all images from a site
+    """
+    for n in driver.find_elements_by_tag_name("//img[@src]"):
+        img_url = n.get_attribute("src")
+        save_img(img_url)
+    """
 
     # print history
     for url in frontier._history.values():

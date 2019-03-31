@@ -55,6 +55,7 @@ class Frontier:
 
     def add_urls(self, urls):
         for url in urls:
+
             self.add_url(url)
 
     def get_next(self):
@@ -62,6 +63,9 @@ class Frontier:
 
     def has_urls(self):
         return len(self._frontier) > 0
+
+    def frontier_content(self):
+        return self._frontier
 
     def max_reached(self):
         return self._max_urls == 0
