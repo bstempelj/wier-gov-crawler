@@ -67,20 +67,31 @@ class Database:
 
         return site_id
 
-    def add_page(self, url, html_content, http_code, accessed_time, site_id, from_page):
+    def _check_if_page_exists(self, hash_content):
+        cur = self.conn.cursor()
+
+        cur.execute("SELECT id FROM crawldb.page WHERE hash_content = %s", (hash_content,))
+        return True if cur.fetchone() is not None else False
+
+    def add_page(self, url, html_content, http_code, accessed_time, site_id, from_page, hash_content):
         if not self.use_db:
             return
 
+        # print(hash_content)
         cur = self.conn.cursor()
 
-        doc = self._check_if_doc(url)
+        is_duplicate = self._check_if_page_exists(hash_content)
+        doc = self._check_if_doc(url, is_duplicate)
+        if doc[1] is not None or is_duplicate:
+            html_content = None
+            hash_content = None
 
         # if document then html_content must be None and write content in page_data table
-        row = (site_id, doc[0], url, html_content if doc[1] is None else None, http_code, accessed_time,)
+        row = (site_id, doc[0], url, html_content, http_code, accessed_time, hash_content,)
 
         try:
-            cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time) "
-                        "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (url) DO UPDATE SET url = '" + url + "'  RETURNING id", row)
+            cur.execute("INSERT INTO crawldb.page(site_id, page_type_code, url, html_content, http_status_code, accessed_time, hash_content) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (url) DO UPDATE SET url = '" + url + "'  RETURNING id", row)
             page_id = cur.fetchone()[0]
 
             self.add_link(from_page, page_id)
@@ -122,7 +133,7 @@ class Database:
     def close_connection(self):
         self.conn.cursor().close()
 
-    def _check_if_doc(self, url):
+    def _check_if_doc(self, url, is_duplicate):
         path, ext = splitext(url)
         data_type_code = ext[1:].upper()
         if data_type_code in self.data_types:
@@ -133,4 +144,4 @@ class Database:
             filename = path[path.rindex("/")+1:]
             return 'IMAGE', data.content, ext[1:].upper(), filename
         else:
-            return 'HTML', None
+            return 'DUPLICATE' if is_duplicate else 'HTML' , None

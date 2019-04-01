@@ -61,7 +61,7 @@ class Frontier:
         url = self._norm_url(url)
         base = self._base_url(url)
         if base in self._seed:
-            hash_text = self._get_url_hash(url)
+            hash_text = self.get_url_hash(url)
             if hash_text not in self._history:
                 self._history[hash_text] = url
                 self._frontier.append((url, page_id,))
@@ -78,3 +78,8 @@ class Frontier:
 
     def frontier_content(self):
         return self._frontier
+
+    def get_url_hash(self, url):
+        m = hashlib.sha1()
+        m.update(url.encode('utf-8'))
+        return m.hexdigest()
