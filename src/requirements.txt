@@ -1,0 +1,9 @@
+REQUIREMENTS:
+	- multiple parallel workers
+		- num of workers = parameter when starting the crawler
+	- frontier strategy = breadth-first	(explain in report)
+	- respect robots.txt
+		- User-agent
+		- Allow/Disallow
+		- Crawl-delay
+		- Sitemap

@@ -44,7 +44,6 @@ seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si",
 browser = Browser.FIREFOX
 counter = 0
 
-
 def get_base_url(url):
 	split_url = urlsplit(url)
 	return "://".join([split_url.scheme, split_url.netloc])
@@ -85,8 +84,6 @@ def contains(s, attrs):
 
 
 def get_urls(driver, frontier, page_id):
-	global seed
-
 	# Parsing onClick
 	# for n in driver.find_elements_by_xpath("//*[@onclick]"):
 	#     onclick = n.get_attribute("onclick")
@@ -155,7 +152,8 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
 		print('Thread: ' + th_num + ' - ' + url)
 		http_head = requests.head(url)  # .page_source v bazo
 
-		# Skip links which give 404 not found (links still exists but file doesnt anymore)
+		# Skip links which give 404 not found
+		# (links still exists but file doesnt anymore)
 		if http_head.status_code == 404:
 			continue
 
@@ -191,9 +189,6 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
 
 			if rp.can_fetch("*", url):
 				get_urls(driver, frontier, page_id)
-
-			if rp.crawl_delay("*") is not None:
-				print("crawl_delay FOUND")
 		elif is_html:
 			# no robots.txt => parse everything :)
 			# Write site to database without
