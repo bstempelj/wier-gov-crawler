@@ -254,8 +254,4 @@ if __name__ == "__main__":
     else:
         crawler('1', frontier, db, rp, sp, robots, start)
 
-    # print history
-    for url in frontier._history.values():
-        print(url)
-
 
