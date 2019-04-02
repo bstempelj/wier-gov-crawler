@@ -129,23 +129,23 @@ class Database:
         path, ext = splitext(url)
         data_type_code = ext[1:].upper()
         if data_type_code in self.data_types:
-            """
+
             try:
                 data = requests.get(url)
             except Exception as e:
                 print(e)
                 return -1
-            """
-            return 'BINARY', None, data_type_code
+
+            return 'BINARY', data.content, data_type_code
         elif ext in [".png", ".jpg", ".jpeg", ".gif"]:
-            """
+
             try:
                 data = requests.get(url)
             except Exception as e:
                 print(e)
                 return -1
-            """
+
             filename = path[path.rindex("/")+1:]
-            return 'IMAGE', None, ext[1:].upper(), filename
+            return 'IMAGE', data.content, ext[1:].upper(), filename
         else:
             return 'DUPLICATE' if is_duplicate else 'HTML' , None

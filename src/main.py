@@ -40,12 +40,12 @@ class Browser(Enum):
 
 
 use_database = False
-# seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
 seed = ["http://e-prostor.gov.si", "http://mzi.gov.si", "http://mop.gov.si", "http://mizs.gov.si",
         "http://fu.gov.si", "http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si",
         "http://gsv.gov.si", "http://ursm.gov.si"]
 browser = Browser.CHROME
 counter = 0
+
 
 def get_base_url(url):
     split_url = urlsplit(url)
@@ -94,19 +94,19 @@ def contains(s, attrs):
 
 def get_urls(driver, frontier, page_id):
     # Parsing onClick
-    # for n in driver.find_elements_by_xpath("//*[@onclick]"):
-    #     onclick = n.get_attribute("onclick")
-    #     link = ""
+    for n in driver.find_elements_by_xpath("//*[@onclick]"):
+         onclick = n.get_attribute("onclick")
+         link = ""
 
-    #     if contains(onclick, ["parent.open", "window.open"]):
-    #         link = onclick.split("(")[1]
-    #         link = link.split(",")
-    #         link = link[0] if len(link) != 1 else link[0][:-1]
-    #     elif contains(onclick, ["location.href", "parent.location"]):
-    #         link = onclick.split("=")[1].strip()
+         if contains(onclick, ["parent.open", "window.open"]):
+             link = onclick.split("(")[1]
+             link = link.split(",")
+             link = link[0] if len(link) != 1 else link[0][:-1]
+         elif contains(onclick, ["location.href", "parent.location"]):
+             link = onclick.split("=")[1].strip()
 
-    #     if link != "":
-    #         print("FOUND:", link)
+         if link != "":
+             print("FOUND:", link)
 
     # Parsing links
     for n in driver.find_elements_by_xpath("//a[@href]"):
@@ -206,7 +206,7 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
             rp.set_url(robots_url)
             try:
                 rp.read()
-                # print(rp.crawl_delay("*"))
+                time.sleep(int(rp.crawl_delay("*")))
             except Exception as e:
                 print(e)
 
