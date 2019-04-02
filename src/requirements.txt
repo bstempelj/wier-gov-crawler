@@ -1,4 +1,6 @@
 REQUIREMENTS:
+	- seed: [evem.gov.si, e-uprava.gov.si, podatki.gov.si, e-prostor.gov.si]
+		- add 5 additional
 	- multiple parallel workers
 		- num of workers = parameter when starting the crawler
 	- frontier strategy = breadth-first	(explain in report)
@@ -7,3 +9,24 @@ REQUIREMENTS:
 		- Allow/Disallow
 		- Crawl-delay
 		- Sitemap
+	- add sitemap links to frontier
+	- detect duplicate webpages
+		- check for already parsed URLs (history)
+		- normalize URLs
+		- hash page content and compare with DB
+	- parse images and links
+		- for links only a[@href] and img[@src]
+		- download images only from seed websites
+		- onClick links
+			- location.href
+			- document.location
+			- extend relative URLs
+	- download other files
+		- .pdf,
+		- .doc,
+		- .docx,
+		- .ppt,
+		- .pptx.
+	- crawldb
+		- DON'T change, CAN extend
+		- use PostgreSQL
