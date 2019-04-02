@@ -26,19 +26,6 @@ class Database:
             self.conn = psycopg2.connect(**params)
             print('Connection to DB successful')
 
-            self.conn.cursor().execute("ALTER SEQUENCE crawldb.page_id_seq RESTART WITH 1;" \
-                                        "ALTER SEQUENCE crawldb.page_data_id_seq RESTART WITH 1;" \
-                                        "ALTER SEQUENCE crawldb.site_id_seq RESTART WITH 1;")
-            print('Delete data from link table')
-            self.conn.cursor().execute("DELETE FROM crawldb.link")
-            print('Delete data from image table')
-            self.conn.cursor().execute("DELETE FROM crawldb.image")
-            print('Delete data from page_data table')
-            self.conn.cursor().execute("DELETE FROM crawldb.page_data")
-            print('Delete data from page table')
-            self.conn.cursor().execute("DELETE FROM crawldb.page")
-            print('Delete data from site table')
-            self.conn.cursor().execute("DELETE FROM crawldb.site")
             print('INSERT IMAGE code to page_type table')
             self.conn.cursor().execute("INSERT INTO crawldb.page_type (code) VALUES ('IMAGE') ON CONFLICT (code) DO UPDATE SET code = 'IMAGE'")
             self.conn.commit()
@@ -70,7 +57,7 @@ class Database:
     def _check_if_page_exists(self, hash_content):
         cur = self.conn.cursor()
 
-        cur.execute("SELECT id FROM crawldb.page WHERE hash_content = %s", (hash_content,))
+        cur.execute("SELECT id FROM crawldb.page WHERE hash_content = '" + hash_content + "'")
         return True if cur.fetchone() is not None else False
 
     def add_page(self, url, html_content, http_code, accessed_time, site_id, from_page, hash_content):
@@ -82,6 +69,9 @@ class Database:
 
         is_duplicate = self._check_if_page_exists(hash_content)
         doc = self._check_if_doc(url, is_duplicate)
+        if doc == -1:
+            return doc
+
         if doc[1] is not None or is_duplicate:
             html_content = None
             hash_content = None
@@ -111,7 +101,7 @@ class Database:
         except Exception as e:
             print(e)
             print(row)
-            return
+            return -1
 
         self.conn.commit()
         return page_id
@@ -120,12 +110,14 @@ class Database:
         if not self.use_db:
             return
 
-        cur = self.conn.cursor()
-
-        cur.execute(
-            "INSERT INTO crawldb.link(from_page, to_page) "
-            "VALUES (%s, %s)", (from_page, to_page,))
-        self.conn.commit()
+        try:
+            cur = self.conn.cursor()
+            cur.execute(
+                "INSERT INTO crawldb.link(from_page, to_page) "
+                "VALUES (%s, %s) ON CONFLICT (from_page, to_page) DO NOTHING", (from_page, to_page,))
+            self.conn.commit()
+        except Exception as e:
+            print(e)
 
     def get_connection(self):
         return self.conn
@@ -137,11 +129,23 @@ class Database:
         path, ext = splitext(url)
         data_type_code = ext[1:].upper()
         if data_type_code in self.data_types:
-            data = requests.get(url)
-            return 'BINARY', data.content, data_type_code
+            """
+            try:
+                data = requests.get(url)
+            except Exception as e:
+                print(e)
+                return -1
+            """
+            return 'BINARY', None, data_type_code
         elif ext in [".png", ".jpg", ".jpeg", ".gif"]:
-            data = requests.get(url)
+            """
+            try:
+                data = requests.get(url)
+            except Exception as e:
+                print(e)
+                return -1
+            """
             filename = path[path.rindex("/")+1:]
-            return 'IMAGE', data.content, ext[1:].upper(), filename
+            return 'IMAGE', None, ext[1:].upper(), filename
         else:
             return 'DUPLICATE' if is_duplicate else 'HTML' , None

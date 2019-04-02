@@ -39,8 +39,11 @@ class Browser(Enum):
     CHROME = 2
 
 
-use_database = True
-seed = ["http://e-prostor.gov.si"]
+use_database = False
+# seed = ["http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si", "http://e-prostor.gov.si"]
+seed = ["http://e-prostor.gov.si", "http://mzi.gov.si", "http://mop.gov.si", "http://mizs.gov.si",
+        "http://fu.gov.si", "http://evem.gov.si", "http://e-uprava.gov.si", "http://podatki.gov.si",
+        "http://gsv.gov.si", "http://ursm.gov.si"]
 browser = Browser.CHROME
 counter = 0
 
@@ -56,6 +59,7 @@ def init_sites():
         base_url = get_base_url(site)
         robots_url = base_url + "/robots.txt"
         frontier.add_url(base_url, 1)
+        print(site)
 
         # check for robots.txt
         robot_file = has_robots_file(base_url)
@@ -75,8 +79,12 @@ def init_sites():
 
 
 def has_robots_file(url):
-    r = requests.get(get_base_url(url) + "/robots.txt")
-    return r.status_code == 200, r.text
+    try:
+        r = requests.get(get_base_url(url) + "/robots.txt")
+        return r.status_code == 200, r.text
+    except Exception as e:
+        print(e)
+        return False, None
 
 
 def contains(s, attrs):
@@ -104,7 +112,8 @@ def get_urls(driver, frontier, page_id):
     for n in driver.find_elements_by_xpath("//a[@href]"):
         try:
             url = n.get_attribute("href")
-            if len(url) > 0 and url.find('javascript:void(0)') == -1:
+            filename, ext = splitext(url)
+            if len(url) > 0 and url.find('javascript:void(0)') == -1 and ext not in [".mp3"]:
                 frontier.add_url(url, page_id)
         except Exception as e:
             print(e)
@@ -138,6 +147,10 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
     global counter
     driver = init_browser()
 
+    if not frontier.has_urls():
+        print(th_num + " sleep")
+        time.sleep(10)
+
     while frontier.has_urls():
         # url info -
         frontier_data = frontier.get_next()
@@ -151,7 +164,10 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
 
         # connect to website
         print('Thread: ' + th_num + ' - ' + url)
-        http_head = requests.head(url)  # .page_source v bazo
+        try:
+            http_head = requests.head(url)  # .page_source v bazo
+        except Exception as e:
+            print(e)
 
         # Skip links which give 404 not found
         # (links still exists but file doesnt anymore)
@@ -171,6 +187,8 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
 
         site_id = seed.index(base_url)+1
         page_id = db.add_page(http_head.url, driver.page_source, http_head.status_code, date_res, site_id, frontier_data[1], frontier.get_url_hash(driver.page_source))
+        if page_id == -1:
+            continue
 
         counter += 1
         if (counter % 1000) == 0:
@@ -186,7 +204,11 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
         # respect robots.txt
         if base_url in robots and is_html:
             rp.set_url(robots_url)
-            rp.read()
+            try:
+                rp.read()
+                # print(rp.crawl_delay("*"))
+            except Exception as e:
+                print(e)
 
             if rp.can_fetch("*", url):
                 get_urls(driver, frontier, page_id)
@@ -203,7 +225,7 @@ def crawler(th_num, frontier, db, rp, sp, robots, start):
 
 
 if __name__ == "__main__":
-    frontier = Frontier()
+    frontier = Frontier(seed)
     robots = []
     rp = RobotFileParser()
     sp = SitemapParser()
